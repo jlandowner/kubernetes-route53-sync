@@ -15,12 +15,12 @@ spec:
     spec:
       containers:
       - name: kubernetes-route53-sync
-        image: jlandowner/kubernetes-route53-sync:0.1
+        image: jlandowner/kubernetes-route53-sync:v0.1.0
         env:
           - name: R53_TTL
             value: "300"
           - name: DNS_NAME
-            value: "g.jlandowner.com"
+            value: "jlandowner.com"
         envFrom:
         - secretRef:
             name: route53-credentials
