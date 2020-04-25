@@ -1,5 +1,4 @@
 FROM golang:1.14-alpine as build
-ENV GO111MODULE=on
 
 RUN apk add --update --no-cache build-base git
 
@@ -8,17 +7,14 @@ RUN apk add --update --no-cache build-base git
 # is based on scratch, which doesn't have adduser, cat, echo, or even sh.
 RUN echo "nobody:x:65534:65534:Nobody:/:" > /etc_passwd
 
-WORKDIR /src
+WORKDIR /go/src/kubernetes-route53-sync
 
 
 
-COPY go.mod ./
-RUN go mod download
+COPY . . 
+RUN CGO_ENABLED=0 go build -o /go/bin/kubernetes-route53-sync ./main.go
 
-COPY *.go ./
-RUN CGO_ENABLED=0 go build -o /bin/kubernetes-route53-sync .
-
-FROM scratch
+FROM alpine:3.10
 
 # Copy the certs from the builder stage
 COPY --from=0 /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
@@ -28,7 +24,7 @@ COPY --from=0 /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 # practice.
 COPY --from=0 /etc_passwd /etc/passwd
 
-COPY --from=build /bin/kubernetes-route53-sync /bin/kubernetes-route53-sync
+COPY --from=build /go/bin/kubernetes-route53-sync /bin/kubernetes-route53-sync
 
 USER nobody
 
