@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubernetes-route53-sync
+spec:
+  selector:
+    matchLabels:
+      deployment: kubernetes-route53-sync
+  replicas: 1
+  template:
+    metadata:
+      name: kubernetes-route53-sync
+      labels:
+        deployment: kubernetes-route53-sync
+    spec:
+      containers:
+      - name: kubernetes-route53-sync
+        image: jlandowner/kubernetes-route53-sync:0.1
+        env:
+          - name: R53_TTL
+            value: "300"
+          - name: DNS_NAME
+            value: "g.jlandowner.com"
+        envFrom:
+        - secretRef:
+            name: route53-credentials
