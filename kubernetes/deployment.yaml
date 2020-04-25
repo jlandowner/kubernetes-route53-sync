@@ -20,7 +20,7 @@ spec:
           - name: R53_TTL
             value: "300"
           - name: DNS_NAME
-            value: "jlandowner.com"
+            value: "example.com"
         envFrom:
         - secretRef:
             name: route53-credentials
