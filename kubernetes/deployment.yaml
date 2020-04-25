@@ -13,9 +13,10 @@ spec:
       labels:
         deployment: kubernetes-route53-sync
     spec:
+      serviceAccountName: kubernetes-route53-sync
       containers:
       - name: kubernetes-route53-sync
-        image: jlandowner/kubernetes-route53-sync:v0.1.0
+        image: jlandowner/kubernetes-route53-sync:v0.1.1
         env:
           - name: R53_TTL
             value: "300"

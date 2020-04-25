@@ -22,6 +22,7 @@ func Sync(ctx context.Context, ips []string, dnsNames []string, ttl int64) error
 	if err != nil {
 		return errors.Wrap(err, "unable to load SDK config")
 	}
+	cfg.Region = "us-east-1"
 	r53 := route53.New(cfg)
 
 	root := dnsNames[0]
@@ -32,7 +33,8 @@ func Sync(ctx context.Context, ips []string, dnsNames []string, ttl int64) error
 
 	for _, dnsName := range dnsNames {
 		// get current ResourceRecordSet
-		recordSet, err := getResourceRecordSet(ctx, r53.ListResourceRecordSetsRequest(&route53.ListResourceRecordSetsInput{HostedZoneId: &zoneID}), dnsName)
+		recordSet, err := getResourceRecordSet(ctx,
+			r53.ListResourceRecordSetsRequest(&route53.ListResourceRecordSetsInput{HostedZoneId: &zoneID}), dnsName)
 		if err != nil {
 			// if not found, create new ResourceRecordSet
 			if err == ErrRecordSetNotFound {
