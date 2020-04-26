@@ -26,7 +26,7 @@ var options = struct {
 	UseInternalIP bool
 	NodeSelector  string
 }{
-	TTL:           os.Getenv("R53_TTL"),
+	TTL:           os.Getenv("DNS_TTL"),
 	DNSName:       os.Getenv("DNS_NAME"),
 	UseInternalIP: os.Getenv("USE_INTERNAL_IP") != "",
 	NodeSelector:  os.Getenv("NODE_SELECTOR"),

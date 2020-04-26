@@ -18,7 +18,7 @@ spec:
       - name: kubernetes-route53-sync
         image: jlandowner/kubernetes-route53-sync:v0.1.1
         env:
-          - name: R53_TTL
+          - name: DNS_TTL
             value: "300"
           - name: DNS_NAME
             value: "example.com"
