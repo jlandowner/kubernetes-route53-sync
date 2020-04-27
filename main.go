@@ -7,9 +7,11 @@ import (
 	"math/rand"
 	"net"
 	"os"
+	"os/signal"
 	"sort"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	r53 "github.com/jlandowner/kubernetes-route53-sync/pkg/route53"
@@ -71,9 +73,10 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	stop := make(chan os.Signal, 1)
+	stop := make(chan struct{})
 	defer close(stop)
-	signal.Notify(c, os.Interrupt, syscall.SIGKILL, syscall.SIGTERM)
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, os.Interrupt, syscall.SIGKILL, syscall.SIGTERM)
 	ctx, cancel := context.WithCancel(context.Background())
 
 	nodeSelector := labels.NewSelector()
@@ -152,11 +155,19 @@ func main() {
 			resync()
 		},
 	})
-	informer.Run(stop)
 
-	<-stop
-	cancel()
-	log.Println("shutting down")
+	go func() {
+		informer.Run(stop)
+		cancel()
+		log.Println("informer stopped")
+	}()
+
+	<-sig
+	log.Println("termination signal recieved")
+	close(stop)
+
+	<-ctx.Done()
+	log.Println("well done")
 	os.Exit(0)
 }
 
@@ -172,13 +183,13 @@ func nodeIsReady(node *core_v1.Node) bool {
 
 func checkSync(ctx context.Context, expectIPs []string, dnsName string, ttl int) bool {
 	var wait int
-	ctx, cancel := context.WithTimeout(ctx, time.Second * time.Duration(ttl*3/2))
+	ctx, cancel := context.WithTimeout(ctx, time.Second*time.Duration(ttl*3/2))
 	defer cancel()
 
 	sort.Strings(expectIPs)
 	for {
 		select {
-		case <-ctx.Done()
+		case <-ctx.Done():
 			log.Println("checkSync failed. reach to timeout")
 			return false
 		default:
