@@ -4,6 +4,8 @@ import (
 	"context"
 	"flag"
 	"log"
+	"math/rand"
+	"net"
 	"os"
 	"sort"
 	"strconv"
@@ -122,10 +124,18 @@ func main() {
 		}
 		lastIPs = ips
 
+		// Sync Route53
 		ctx := context.Background()
 		err = r53.Sync(ctx, ips, dnsNames, int64(ttl))
 		if err != nil {
 			log.Println("failed to sync", err)
+			return
+		}
+
+		ok := checkSync(ctx, ips, dnsNames[0], ttl)
+		if !ok {
+			// reset lastIPs to resync
+			lastIPs = []string{}
 		}
 	}
 
@@ -142,8 +152,6 @@ func main() {
 		},
 	})
 	informer.Run(stop)
-	log.Println("shutdown")
-	select {}
 }
 
 func nodeIsReady(node *core_v1.Node) bool {
@@ -154,4 +162,32 @@ func nodeIsReady(node *core_v1.Node) bool {
 	}
 
 	return false
+}
+
+func checkSync(ctx, expectIPs []string, dnsName string, ttl int) bool {
+	var wait int
+	ctx, cancel := context.WithTimeout(ctx, time.Second * time.Duration(ttl*3/2))
+	defer cancel()
+
+	sort.Strings(expectIPs)
+	for {
+		select {
+		case <-ctx.Done()
+			log.Println("checkSync failed. reach to timeout")
+			return false
+		default:
+			currentIPs, err := net.LookupHost(dnsName)
+			if err != nil {
+				continue
+			}
+			sort.Strings(currentIPs)
+			if strings.Join(expectIPs, ",") == strings.Join(currentIPs, ",") {
+				log.Printf("checkSync OK. DNS: %v, IPs: %v", dnsName, currentIPs)
+				return true
+			}
+			wait += rand.Intn(ttl / 2)
+			log.Printf("checking Sync...next check is %d seconds later", wait)
+			time.Sleep(time.Second * time.Duration(wait))
+		}
+	}
 }
