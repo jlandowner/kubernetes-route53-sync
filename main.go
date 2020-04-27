@@ -71,8 +71,10 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	stop := make(chan struct{})
+	stop := make(chan os.Signal, 1)
 	defer close(stop)
+	signal.Notify(c, os.Interrupt, syscall.SIGKILL, syscall.SIGTERM)
+	ctx, cancel := context.WithCancel(context.Background())
 
 	nodeSelector := labels.NewSelector()
 	if options.NodeSelector != "" {
@@ -125,7 +127,6 @@ func main() {
 		lastIPs = ips
 
 		// Sync Route53
-		ctx := context.Background()
 		err = r53.Sync(ctx, ips, dnsNames, int64(ttl))
 		if err != nil {
 			log.Println("failed to sync", err)
@@ -152,6 +153,11 @@ func main() {
 		},
 	})
 	informer.Run(stop)
+
+	<-stop
+	cancel()
+	log.Println("shutting down")
+	os.Exit(0)
 }
 
 func nodeIsReady(node *core_v1.Node) bool {
@@ -164,7 +170,7 @@ func nodeIsReady(node *core_v1.Node) bool {
 	return false
 }
 
-func checkSync(ctx, expectIPs []string, dnsName string, ttl int) bool {
+func checkSync(ctx context.Context, expectIPs []string, dnsName string, ttl int) bool {
 	var wait int
 	ctx, cancel := context.WithTimeout(ctx, time.Second * time.Duration(ttl*3/2))
 	defer cancel()
