@@ -76,6 +76,7 @@ func main() {
 	stop := make(chan struct{})
 	defer close(stop)
 	sig := make(chan os.Signal, 1)
+	defer close(sig)
 	signal.Notify(sig, os.Interrupt, syscall.SIGKILL, syscall.SIGTERM)
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -124,22 +125,22 @@ func main() {
 		sort.Strings(ips)
 		log.Println("ips:", ips)
 		if strings.Join(ips, ",") == strings.Join(lastIPs, ",") {
-			log.Println("no change detected")
+			// log.Println("no change detected")
 			return
 		}
-		lastIPs = ips
+		log.Println("change detected")
 
-		// Sync Route53
+		// sync Route53
 		err = r53.Sync(ctx, ips, dnsNames, int64(ttl))
 		if err != nil {
 			log.Println("failed to sync", err)
 			return
 		}
 
+		// check DNS
 		ok := checkSync(ctx, ips, dnsNames[0], ttl)
-		if !ok {
-			// reset lastIPs to resync
-			lastIPs = []string{}
+		if ok {
+			lastIPs = ips
 		}
 	}
 
@@ -158,8 +159,8 @@ func main() {
 
 	go func() {
 		informer.Run(stop)
-		cancel()
 		log.Println("informer stopped")
+		cancel()
 	}()
 
 	<-sig
@@ -194,13 +195,13 @@ func checkSync(ctx context.Context, expectIPs []string, dnsName string, ttl int)
 			return false
 		default:
 			currentIPs, err := net.LookupHost(dnsName)
-			if err != nil {
-				continue
-			}
-			sort.Strings(currentIPs)
-			if strings.Join(expectIPs, ",") == strings.Join(currentIPs, ",") {
-				log.Printf("checkSync OK. DNS: %v, IPs: %v", dnsName, currentIPs)
-				return true
+			log.Printf("lookup host result %v, err %v", currentIPs, err)
+			if err == nil {
+				sort.Strings(currentIPs)
+				if strings.Join(expectIPs, ",") == strings.Join(currentIPs, ",") {
+					log.Printf("checkSync OK. DNS: %v, IPs: %v", dnsName, currentIPs)
+					return true
+				}
 			}
 			wait += rand.Intn(ttl / 2)
 			log.Printf("checking Sync...next check is %d seconds later", wait)
