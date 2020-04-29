@@ -97,7 +97,7 @@ func main() {
 	lister := factory.Core().V1().Nodes().Lister()
 	var lastIPs []string
 	resync := func() {
-		log.Println("resyncing")
+		// log.Println("resyncing")
 		nodes, err := lister.List(nodeSelector)
 		if err != nil {
 			log.Println("failed to list nodes", err)
@@ -127,7 +127,7 @@ func main() {
 
 		sort.Strings(ips)
 		if strings.Join(ips, ",") == strings.Join(lastIPs, ",") {
-			// log.Println("no change detected")
+			log.Println("no change detected")
 			return
 		}
 		log.Println("change detected", "ips:", ips, "lastIPs:", lastIPs)
@@ -189,14 +189,14 @@ func nodeIsReady(node *core_v1.Node) bool {
 
 func checkSync(ctx context.Context, expectIPs []string, dnsName string, ttl int) bool {
 	var wait int
-	ctx, cancel := context.WithTimeout(ctx, time.Second*time.Duration(ttl*3/2))
+	ctx, cancel := context.WithTimeout(ctx, time.Second*time.Duration(ttl*2))
 	defer cancel()
 
 	sort.Strings(expectIPs)
 	for {
 		select {
 		case <-ctx.Done():
-			log.Println("checkSync failed. reach to timeout")
+			log.Println("failed to checkSync. Reached to timeout")
 			return false
 		default:
 			currentIPs, err := net.LookupHost(dnsName)
@@ -204,7 +204,7 @@ func checkSync(ctx context.Context, expectIPs []string, dnsName string, ttl int)
 			if err == nil {
 				sort.Strings(currentIPs)
 				if strings.Join(expectIPs, ",") == strings.Join(currentIPs, ",") {
-					log.Printf("checkSync OK. Name: %v, IPs: %v", dnsName, currentIPs)
+					log.Printf("Success to checkSync Name: %v, IPs: %v", dnsName, currentIPs)
 					return true
 				}
 			}
