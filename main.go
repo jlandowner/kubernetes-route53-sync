@@ -25,15 +25,17 @@ import (
 )
 
 var options = struct {
-	TTL           string
-	DNSName       string
-	UseInternalIP bool
-	NodeSelector  string
+	TTL              string
+	DNSName          string
+	UseInternalIP    bool
+	NodeSelector     string
+	WaitSyncFinished bool
 }{
-	TTL:           os.Getenv("DNS_TTL"),
-	DNSName:       os.Getenv("DNS_NAME"),
-	UseInternalIP: os.Getenv("USE_INTERNAL_IP") != "",
-	NodeSelector:  os.Getenv("NODE_SELECTOR"),
+	TTL:              os.Getenv("DNS_TTL"),
+	DNSName:          os.Getenv("DNS_NAME"),
+	UseInternalIP:    os.Getenv("USE_INTERNAL_IP") != "",
+	NodeSelector:     os.Getenv("NODE_SELECTOR"),
+	WaitSyncFinished: false,
 }
 
 func main() {
@@ -41,6 +43,7 @@ func main() {
 	flag.StringVar(&options.TTL, "ttl", options.TTL, "ttl for dns (default 300)")
 	flag.BoolVar(&options.UseInternalIP, "use-internal-ip", options.UseInternalIP, "use internal ips too if external ip's are not available")
 	flag.StringVar(&options.NodeSelector, "node-selector", options.NodeSelector, "node selector query")
+	flag.BoolVar(&options.WaitSyncFinished, "wait-sync-finished", options.WaitSyncFinished, "if true, try to resolve name after sync until matched")
 	flag.Parse()
 
 	dnsNames := strings.Split(options.DNSName, ",")
@@ -123,12 +126,11 @@ func main() {
 		}
 
 		sort.Strings(ips)
-		log.Println("ips:", ips)
 		if strings.Join(ips, ",") == strings.Join(lastIPs, ",") {
 			// log.Println("no change detected")
 			return
 		}
-		log.Println("change detected")
+		log.Println("change detected", "ips:", ips, "lastIPs:", lastIPs)
 
 		// sync Route53
 		err = r53.Sync(ctx, ips, dnsNames, int64(ttl))
@@ -137,10 +139,13 @@ func main() {
 			return
 		}
 
-		// check DNS
-		ok := checkSync(ctx, ips, dnsNames[0], ttl)
-		if ok {
-			lastIPs = ips
+		lastIPs = ips
+		if options.WaitSyncFinished {
+			// try to resolve name. if reached to timeout, reset lastIPs
+			ok := checkSync(ctx, ips, dnsNames[0], ttl)
+			if !ok {
+				lastIPs = []string{}
+			}
 		}
 	}
 
@@ -199,7 +204,7 @@ func checkSync(ctx context.Context, expectIPs []string, dnsName string, ttl int)
 			if err == nil {
 				sort.Strings(currentIPs)
 				if strings.Join(expectIPs, ",") == strings.Join(currentIPs, ",") {
-					log.Printf("checkSync OK. DNS: %v, IPs: %v", dnsName, currentIPs)
+					log.Printf("checkSync OK. Name: %v, IPs: %v", dnsName, currentIPs)
 					return true
 				}
 			}
