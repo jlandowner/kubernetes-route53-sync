@@ -204,7 +204,7 @@ func checkSync(ctx context.Context, expectIPs []string, dnsName string, ttl int)
 			if err == nil {
 				sort.Strings(currentIPs)
 				if strings.Join(expectIPs, ",") == strings.Join(currentIPs, ",") {
-					log.Printf("Success to checkSync Name: %v, IPs: %v", dnsName, currentIPs)
+					log.Printf("success to checkSync Name: %v, IPs: %v", dnsName, currentIPs)
 					return true
 				}
 			}
