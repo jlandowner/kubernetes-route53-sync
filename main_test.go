@@ -9,7 +9,7 @@ import (
 )
 
 func TestCheckSync(t *testing.T) {
-	dnsName := "g.jlandowner.com"
+	dnsName := "example.com"
 	addr, err := net.LookupHost(dnsName)
 	assert.Nil(t, err)
 	ctx := context.Background()
