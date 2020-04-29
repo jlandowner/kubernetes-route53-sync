@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"log"
-	"math/rand"
 	"net"
 	"os"
 	"os/signal"
@@ -25,17 +24,17 @@ import (
 )
 
 var options = struct {
-	TTL              string
-	DNSName          string
-	UseInternalIP    bool
-	NodeSelector     string
-	WaitSyncFinished bool
+	TTL             string
+	DNSName         string
+	UseInternalIP   bool
+	NodeSelector    string
+	EnableDNSAccess bool
 }{
-	TTL:              os.Getenv("DNS_TTL"),
-	DNSName:          os.Getenv("DNS_NAME"),
-	UseInternalIP:    os.Getenv("USE_INTERNAL_IP") != "",
-	NodeSelector:     os.Getenv("NODE_SELECTOR"),
-	WaitSyncFinished: false,
+	TTL:             os.Getenv("DNS_TTL"),
+	DNSName:         os.Getenv("DNS_NAME"),
+	UseInternalIP:   os.Getenv("USE_INTERNAL_IP") != "",
+	NodeSelector:    os.Getenv("NODE_SELECTOR"),
+	EnableDNSAccess: false,
 }
 
 func main() {
@@ -43,7 +42,7 @@ func main() {
 	flag.StringVar(&options.TTL, "ttl", options.TTL, "ttl for dns (default 300)")
 	flag.BoolVar(&options.UseInternalIP, "use-internal-ip", options.UseInternalIP, "use internal ips too if external ip's are not available")
 	flag.StringVar(&options.NodeSelector, "node-selector", options.NodeSelector, "node selector query")
-	flag.BoolVar(&options.WaitSyncFinished, "wait-sync-finished", options.WaitSyncFinished, "if true, try to resolve name after sync until matched")
+	flag.BoolVar(&options.EnableDNSAccess, "enable-dns-access", options.EnableDNSAccess, "set false if you cannot resolve name in cluster")
 	flag.Parse()
 
 	dnsNames := strings.Split(options.DNSName, ",")
@@ -103,25 +102,29 @@ func main() {
 			log.Println("failed to list nodes", err)
 		}
 
+		nodeAddressType := core_v1.NodeExternalIP
+		if options.UseInternalIP {
+			nodeAddressType = core_v1.NodeInternalIP
+		}
+
 		var ips []string
 		for _, node := range nodes {
 			if nodeIsReady(node) {
 				for _, addr := range node.Status.Addresses {
-					if addr.Type == core_v1.NodeExternalIP {
+					if addr.Type == nodeAddressType {
 						ips = append(ips, addr.Address)
 					}
 				}
 			}
 		}
-		if options.UseInternalIP && len(ips) == 0 {
-			for _, node := range nodes {
-				if nodeIsReady(node) {
-					for _, addr := range node.Status.Addresses {
-						if addr.Type == core_v1.NodeInternalIP {
-							ips = append(ips, addr.Address)
-						}
-					}
-				}
+
+		if options.EnableDNSAccess {
+			currentIPs, err := net.LookupHost(dnsNames[0])
+			if err != nil {
+				lastIPs = []string{}
+			} else {
+				sort.Strings(currentIPs)
+				lastIPs = currentIPs
 			}
 		}
 
@@ -136,17 +139,8 @@ func main() {
 		err = r53.Sync(ctx, ips, dnsNames, int64(ttl))
 		if err != nil {
 			log.Println("failed to sync", err)
-			return
 		}
-
 		lastIPs = ips
-		if options.WaitSyncFinished {
-			// try to resolve name. if reached to timeout, reset lastIPs
-			ok := checkSync(ctx, ips, dnsNames[0], ttl)
-			if !ok {
-				lastIPs = []string{}
-			}
-		}
 	}
 
 	informer := factory.Core().V1().Nodes().Informer()
@@ -185,32 +179,4 @@ func nodeIsReady(node *core_v1.Node) bool {
 	}
 
 	return false
-}
-
-func checkSync(ctx context.Context, expectIPs []string, dnsName string, ttl int) bool {
-	var wait int
-	ctx, cancel := context.WithTimeout(ctx, time.Second*time.Duration(ttl*2))
-	defer cancel()
-
-	sort.Strings(expectIPs)
-	for {
-		select {
-		case <-ctx.Done():
-			log.Println("failed to checkSync. Reached to timeout")
-			return false
-		default:
-			currentIPs, err := net.LookupHost(dnsName)
-			log.Printf("lookup host result %v, err %v", currentIPs, err)
-			if err == nil {
-				sort.Strings(currentIPs)
-				if strings.Join(expectIPs, ",") == strings.Join(currentIPs, ",") {
-					log.Printf("success to checkSync Name: %v, IPs: %v", dnsName, currentIPs)
-					return true
-				}
-			}
-			wait += rand.Intn(ttl / 2)
-			log.Printf("checking Sync...next check is %d seconds later", wait)
-			time.Sleep(time.Second * time.Duration(wait))
-		}
-	}
 }
