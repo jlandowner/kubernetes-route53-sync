@@ -18,7 +18,7 @@ spec:
       - name: kubernetes-route53-sync
         image: jlandowner/kubernetes-route53-sync:release-1.0.0
         args:
-        - --wait-sync-finished=true
+        - --enable-dns-access=true
         env:
           - name: DNS_TTL
             value: "60"
