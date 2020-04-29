@@ -25,17 +25,17 @@ import (
 )
 
 var options = struct {
-	TTL              string
-	DNSName          string
-	UseInternalIP    bool
-	NodeSelector     string
-	WaitSyncFinished bool
+	TTL             string
+	DNSName         string
+	UseInternalIP   bool
+	NodeSelector    string
+	EnableDNSAccess bool
 }{
-	TTL:              os.Getenv("DNS_TTL"),
-	DNSName:          os.Getenv("DNS_NAME"),
-	UseInternalIP:    os.Getenv("USE_INTERNAL_IP") != "",
-	NodeSelector:     os.Getenv("NODE_SELECTOR"),
-	WaitSyncFinished: false,
+	TTL:             os.Getenv("DNS_TTL"),
+	DNSName:         os.Getenv("DNS_NAME"),
+	UseInternalIP:   os.Getenv("USE_INTERNAL_IP") != "",
+	NodeSelector:    os.Getenv("NODE_SELECTOR"),
+	EnableDNSAccess: false,
 }
 
 func main() {
@@ -43,7 +43,7 @@ func main() {
 	flag.StringVar(&options.TTL, "ttl", options.TTL, "ttl for dns (default 300)")
 	flag.BoolVar(&options.UseInternalIP, "use-internal-ip", options.UseInternalIP, "use internal ips too if external ip's are not available")
 	flag.StringVar(&options.NodeSelector, "node-selector", options.NodeSelector, "node selector query")
-	flag.BoolVar(&options.WaitSyncFinished, "wait-sync-finished", options.WaitSyncFinished, "if true, try to resolve name after sync until matched")
+	flag.BoolVar(&options.EnableDNSAccess, "enable-dns-access", options.EnableDNSAccess, "set false if you cannot resolve name in cluster")
 	flag.Parse()
 
 	dnsNames := strings.Split(options.DNSName, ",")
@@ -103,25 +103,29 @@ func main() {
 			log.Println("failed to list nodes", err)
 		}
 
+		nodeAddressType := core_v1.NodeExternalIP
+		if options.UseInternalIP {
+			nodeAddressType = core_v1.NodeInternalIP
+		}
+
 		var ips []string
 		for _, node := range nodes {
 			if nodeIsReady(node) {
 				for _, addr := range node.Status.Addresses {
-					if addr.Type == core_v1.NodeExternalIP {
+					if addr.Type == nodeAddressType {
 						ips = append(ips, addr.Address)
 					}
 				}
 			}
 		}
-		if options.UseInternalIP && len(ips) == 0 {
-			for _, node := range nodes {
-				if nodeIsReady(node) {
-					for _, addr := range node.Status.Addresses {
-						if addr.Type == core_v1.NodeInternalIP {
-							ips = append(ips, addr.Address)
-						}
-					}
-				}
+
+		if options.EnableDNSAccess {
+			currentIPs, err := net.LookupHost(dnsNames[0])
+			if err != nil {
+				lastIPs = []string{}
+			} else {
+				sort.Strings(currentIPs)
+				lastIPs = currentIPs
 			}
 		}
 
@@ -140,12 +144,9 @@ func main() {
 		}
 
 		lastIPs = ips
-		if options.WaitSyncFinished {
+		if options.EnableDNSAccess {
 			// try to resolve name. if reached to timeout, reset lastIPs
-			ok := checkSync(ctx, ips, dnsNames[0], ttl)
-			if !ok {
-				lastIPs = []string{}
-			}
+			checkSync(ctx, ips, dnsNames[0], ttl)
 		}
 	}
 
