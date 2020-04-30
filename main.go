@@ -64,6 +64,11 @@ func main() {
 		ttl = 300
 	}
 
+	nodeAddressType := core_v1.NodeExternalIP
+	if options.UseInternalIP {
+		nodeAddressType = core_v1.NodeInternalIP
+	}
+
 	log.SetOutput(os.Stdout)
 
 	cfg, err := rest.InClusterConfig()
@@ -101,11 +106,6 @@ func main() {
 		nodes, err := lister.List(nodeSelector)
 		if err != nil {
 			log.Println("failed to list nodes", err)
-		}
-
-		nodeAddressType := core_v1.NodeExternalIP
-		if options.UseInternalIP {
-			nodeAddressType = core_v1.NodeInternalIP
 		}
 
 		var ips []string
