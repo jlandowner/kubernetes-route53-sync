@@ -4,6 +4,6 @@
 
 [![dockeri.co](https://dockeri.co/image/jlandowner/kubernetes-route53-sync)](https://hub.docker.com/r/jlandowner/kubernetes-route53-sync)
 
-Kubernetes controller to synchronize route53 DNS records with node IPs
+Kubernetes controller to synchronize node IPs with Route53 DNS records
 
 This project is forked from https://github.com/calebdoxsey/kubernetes-cloudflare-sync
