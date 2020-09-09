@@ -13,9 +13,3 @@ spec:
         env:
           - name: DNS_NAME
             value: "example.com"
-          - name: DNS_TTL
-            value: "60"
-          - name: USE_INTERNAL_IP
-            value: "1"
-          - name: ENABLE_DNS_ACCESS
-            value: "1"
