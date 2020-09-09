@@ -9,26 +9,99 @@ Kubernetes controller to synchronize node IPs with Route53 DNS records
 This project is forked from https://github.com/calebdoxsey/kubernetes-cloudflare-sync
 
 # Install
+## Configure DNS settings to sync
+Fetch the configuration templates in this repository.
+We recommend just cloning this repository.
 
-Fetch files
-
-```shell
+```
 git clone https://github.com/jlandowner/kubernetes-route53-sync.git
+cd kubernetes-route53-sync
 ```
 
-Modify AWS Congiguration to yours in secret.yaml
+Then update DNS name to sync and the other settings in `kubernetes/common/deployment.yaml`
 
-```shell
-sed -i -e 's/<YOUR_AWS_ACCESS_KEY_ID>/XXXXXX/' ./kubernetes-route53-sync/master/kubernetes/secret.yaml
+## Create AWS IAM Policy
 
-sed -i -e 's/<YOUR_AWS_SECRET_ACCESS_KEY>/YYYYYY/' ./kubernetes-route53-sync/master/kubernetes/secret.yaml
+```
+aws iam create-policy --policy-name kubernetes-route53-sync --policy-document file://policy.json
 ```
 
-Apply the configuration files
+The Output PolicyArn will be used later.
 
-```shell
-kubectl apply -f ./kubernetes-route53-sync/kubernetes/
+## Configure AWS IAM Credentials and Deploy
+
+There are 2 ways to configure credentials. Choose one of them for your environment.
+
+- Using Access Key
+- Using IRSA (IAM Role for ServiceAccount) for EKS
+
+### Using Access Key
+
+1. Create IAM User
+
+Replace YOUR_ACCOUNT_ID to yours.
+
 ```
+aws iam create-user --user-name kubernetes-route53-sync
+aws iam attach-user-policy --user-name kubernetes-route53-sync --policy-arn arn:aws:iam::YOUR_ACCOUNT_ID:policy/kubernetes-route53-sync
+aws iam create-access-key --user-name kubernetes-route53-sync
+```
+
+Then replace <YOUR_AWS_ACCESS_KEY_ID> and <YOUR_AWS_SECRET_ACCESS_KEY> in `kubernetes/accesskey/kustomization.yaml` to the above output
+
+2. Deploy
+
+```
+kustomize build kubernetes/accesskey | kubectl apply -f -
+```
+
+### Using IRSA (IAM Role for ServiceAccount) for EKS
+
+You can also use [IRSA](https://docs.aws.amazon.com/ja_jp/eks/latest/userguide/iam-roles-for-service-accounts.html) if you run it on EKS.
+
+Replace YOUR_EKS_CLUSTER_NAME and YOUR_ACCOUNT_ID to yours.
+
+1. Create OIDC ID Provider
+
+>Note: See the official docs if you do not use eksctl.
+ https://docs.aws.amazon.com/ja_jp/eks/latest/userguide/enable-iam-roles-for-service-accounts.html
+
+```
+eksctl utils associate-iam-oidc-provider --cluster YOUR_EKS_CLUSTER_NAME --approve
+```
+
+2. Create IAM Role
+
+>Note: See the official docs if you do not use eksctl.
+ https://docs.aws.amazon.com/ja_jp/eks/latest/userguide/create-service-account-iam-policy-and-role.html
+
+```
+eksctl create iamserviceaccount \
+    --name kubernetes-route53-sync \
+    --namespace kube-system \
+    --cluster YOUR_EKS_CLUSTER_NAME \
+    --attach-policy-arn arn:aws:iam::YOUR_ACCOUNT_ID:policy/kubernetes-route53-sync \
+    --approve \
+    --override-existing-serviceaccounts
+```
+
+3. Deploy
+
+```
+kustomize build kubernetes/irsa | kubectl apply -f -
+```
+
+# Available variable environments
+|name|description|example value|required|
+|:--|:--|:--|:--|
+|DNS_NAME|Route53 A Record to sync. Find Hostedzone ID by its sufix. |'k8s.example.com' (A Record in Hostedzone named "example.com")|true|
+|DNS_TTL|Route53 Record TTL|'60'|false|
+|HOSTEDZONE_ID|Specify Route53 Hostedzone ID especially when you have the subdomain at another hostedzone from root|'XXXXXXXXXXXXX'|false|
+|USE_INTERNAL_IP|Use Node Internal IP (default External IP)|'1'|false|
+|ENABLE_DNS_ACCESS|Access to DNS for the reconciliation from the Pods|'1'|false|
+|NODE_SELECTOR|node selector query|'disktype=ssd'|false|
+|HTTPS_PROXY|use proxy (protocol://host:port)|'http://your-proxy:1080'|false|
+|NO_PROXY|not use proxy for specific endpoints|'sts.amazonaws.com'|false|
 
 # LICENSE
 MIT License
