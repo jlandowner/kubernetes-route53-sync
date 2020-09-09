@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubernetes-route53-sync
+spec:
+  replicas: 1
+  template:
+    spec:
+      serviceAccountName: kubernetes-route53-sync
+      containers:
+      - name: kubernetes-route53-sync
+        image: jlandowner/kubernetes-route53-sync:release-1.1.1
+        env:
+          - name: DNS_NAME
+            value: "example.com"
+          - name: DNS_TTL
+            value: "60"
+          - name: USE_INTERNAL_IP
+            value: "1"
+          - name: ENABLE_DNS_ACCESS
+            value: "1"
