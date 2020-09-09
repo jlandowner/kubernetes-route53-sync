@@ -26,7 +26,7 @@ func Sync(ctx context.Context, ips []string, dnsNames []string, ttl int64, zoneI
 	r53 := route53.New(cfg)
 
 	root := dnsNames[0]
-	if zoneID != "" {
+	if zoneID == "" {
 		zoneID, err = findHostedZoneID(ctx, r53.ListHostedZonesRequest(&route53.ListHostedZonesInput{}), root)
 		if err != nil {
 			return errors.Wrapf(err, "failed to find zone id for dns-name:=%s", root)
