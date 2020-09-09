@@ -27,12 +27,14 @@ import (
 var options = struct {
 	TTL             string
 	DNSName         string
+	HostedZoneID    string
 	UseInternalIP   bool
 	NodeSelector    string
 	EnableDNSAccess bool
 }{
 	TTL:             os.Getenv("DNS_TTL"),
 	DNSName:         os.Getenv("DNS_NAME"),
+	HostedZoneID:    os.Getenv("HOSTEDZONE_ID"),
 	UseInternalIP:   os.Getenv("USE_INTERNAL_IP") == "1",
 	NodeSelector:    os.Getenv("NODE_SELECTOR"),
 	EnableDNSAccess: os.Getenv("ENABLE_DNS_ACCESS") == "1",
@@ -41,6 +43,7 @@ var options = struct {
 func main() {
 	flag.StringVar(&options.DNSName, "dns-name", options.DNSName, "the dns name for the nodes, comma-separated for multiple (same root)")
 	flag.StringVar(&options.TTL, "ttl", options.TTL, "ttl for dns (default 300)")
+	flag.StringVar(&options.HostedZoneID, "hostedzone-id", options.HostedZoneID, "Route53 hostedzone id")
 	flag.BoolVar(&options.UseInternalIP, "use-internal-ip", options.UseInternalIP, "use internal ips too if external ip's are not available")
 	flag.StringVar(&options.NodeSelector, "node-selector", options.NodeSelector, "node selector query")
 	flag.BoolVar(&options.EnableDNSAccess, "enable-dns-access", options.EnableDNSAccess, "set false if you cannot resolve name in cluster")
@@ -66,6 +69,7 @@ func main() {
 	}
 	log.Println("DNS record ttl", ttl)
 
+	log.Println("HostedZoneID", options.HostedZoneID)
 	log.Println("Enable DNS Access", options.EnableDNSAccess)
 
 	nodeAddressType := core_v1.NodeExternalIP
@@ -143,7 +147,7 @@ func main() {
 		log.Println("change detected", "ips:", ips, "lastIPs:", lastIPs)
 
 		// sync Route53
-		err = r53.Sync(ctx, ips, dnsNames, int64(ttl))
+		err = r53.Sync(ctx, ips, dnsNames, int64(ttl), options.HostedZoneID)
 		if err != nil {
 			log.Println("failed to sync", err)
 			return

@@ -16,7 +16,7 @@ var (
 )
 
 // Sync update Route53 RecordSet by given ips
-func Sync(ctx context.Context, ips []string, dnsNames []string, ttl int64) error {
+func Sync(ctx context.Context, ips []string, dnsNames []string, ttl int64, zoneID string) error {
 
 	cfg, err := external.LoadDefaultAWSConfig()
 	if err != nil {
@@ -26,9 +26,11 @@ func Sync(ctx context.Context, ips []string, dnsNames []string, ttl int64) error
 	r53 := route53.New(cfg)
 
 	root := dnsNames[0]
-	zoneID, err := findHostedZoneID(ctx, r53.ListHostedZonesRequest(&route53.ListHostedZonesInput{}), root)
-	if err != nil {
-		return errors.Wrapf(err, "failed to find zone id for dns-name:=%s", root)
+	if zoneID != "" {
+		zoneID, err = findHostedZoneID(ctx, r53.ListHostedZonesRequest(&route53.ListHostedZonesInput{}), root)
+		if err != nil {
+			return errors.Wrapf(err, "failed to find zone id for dns-name:=%s", root)
+		}
 	}
 
 	for _, dnsName := range dnsNames {
