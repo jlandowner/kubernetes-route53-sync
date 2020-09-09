@@ -33,9 +33,9 @@ var options = struct {
 }{
 	TTL:             os.Getenv("DNS_TTL"),
 	DNSName:         os.Getenv("DNS_NAME"),
-	UseInternalIP:   os.Getenv("USE_INTERNAL_IP") != "",
+	UseInternalIP:   os.Getenv("USE_INTERNAL_IP") == "1",
 	NodeSelector:    os.Getenv("NODE_SELECTOR"),
-	EnableDNSAccess: false,
+	EnableDNSAccess: os.Getenv("ENABLE_DNS_ACCESS") == "1",
 }
 
 func main() {
@@ -51,6 +51,7 @@ func main() {
 		flag.Usage()
 		log.Fatalln("dns name is required")
 	}
+	log.Println("DNS Name to sync", dnsNames)
 
 	for i, dnsName := range dnsNames {
 		if !strings.HasSuffix(dnsName, ".") {
@@ -63,11 +64,15 @@ func main() {
 		log.Println("TTL config not found or incorrect, defaulting to 300")
 		ttl = 300
 	}
+	log.Println("DNS record ttl", ttl)
+
+	log.Println("Enable DNS Access", options.EnableDNSAccess)
 
 	nodeAddressType := core_v1.NodeExternalIP
 	if options.UseInternalIP {
 		nodeAddressType = core_v1.NodeInternalIP
 	}
+	log.Println("Node Address Type", nodeAddressType)
 
 	log.SetOutput(os.Stdout)
 
@@ -97,6 +102,7 @@ func main() {
 			nodeSelector = selector
 		}
 	}
+	log.Println("NodeSelector", nodeSelector)
 
 	factory := informers.NewSharedInformerFactory(client, time.Minute)
 	lister := factory.Core().V1().Nodes().Lister()
