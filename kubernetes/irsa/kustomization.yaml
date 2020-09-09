@@ -14,7 +14,7 @@ commonAnnotations:
 patches:
 - patch: |
     - op: replace
-      path: /spec/template/spec/containers/0/securityContext
+      path: /spec/template/spec/securityContext
       value:
         fsGroup: 6553
   target:
