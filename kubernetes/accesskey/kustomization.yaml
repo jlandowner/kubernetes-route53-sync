@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+commonLabels:
+  auth: accesskey
+resources:
+- ../common
+# Replace <YOUR_AWS_ACCESS_KEY_ID> and <YOUR_AWS_SECRET_ACCESS_KEY> to yours for Route53 access
+secretGenerator:
+- name: route53-credentials
+  literals:
+  - AWS_ACCESS_KEY_ID=<YOUR_AWS_ACCESS_KEY_ID>
+  - AWS_SECRET_ACCESS_KEY=<YOUR_AWS_SECRET_ACCESS_KEY>
+generatorOptions:
+  disableNameSuffixHash: true
+patches:
+- patch: |
+    - op: add
+      path: /spec/template/spec/containers/0/envFrom
+      value:
+        - secretRef:
+            name: route53-credentials
+  target:
+    kind: Deployment
