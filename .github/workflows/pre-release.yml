@@ -27,3 +27,4 @@ jobs:
           docker build . --tag ${IMAGE_NAME}
           echo ${{ secrets.CR_PAT }} | docker login ghcr.io -u ${GITHUB_ACTOR} --password-stdin
           docker push ${IMAGE_NAME}
+          rm -f /home/runner/.docker/config.json
