@@ -26,6 +26,33 @@ jobs:
         run: |
           IMAGE_NAME=ghcr.io/${GITHUB_REPOSITORY}:release-${GITHUB_REF##*/}
           docker build . --tag ${IMAGE_NAME}
-          echo ${{ secrets.CR_PAT }} | docker login ghcr.io -u ${GITHUB_ACTOR} --password-stdin
+          echo ${CR_PAT} | docker login ghcr.io -u ${GITHUB_ACTOR} --password-stdin
           docker push ${IMAGE_NAME}
           rm -f /home/runner/.docker/config.json
+        env:
+          CR_PAT: ${{ secrets.CR_PAT }}
+
+      - name: create release asset
+        run: |
+          make release
+
+      - name: create release
+        id: create_release
+        uses: actions/create-release@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: ${{ github.ref }}
+          draft: true
+          prerelease: false
+      
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+          asset_path: ./${GITHUB_REPOSITORY##*/}.tar.gz
+          asset_name: ${GITHUB_REPOSITORY##*/}.tar.gz
+          asset_content_type: application/x-tar
