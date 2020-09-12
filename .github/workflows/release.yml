@@ -33,8 +33,10 @@ jobs:
           CR_PAT: ${{ secrets.CR_PAT }}
 
       - name: create release asset
+        id: create_release_asset
         run: |
           make release-asset
+          echo "::set-output name=asset_name::${GITHUB_REPOSITORY##*/}.tar.gz"
 
       - name: create release
         id: create_release
@@ -53,6 +55,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
-          asset_path: ./${GITHUB_REPOSITORY##*/}.tar.gz
-          asset_name: ${GITHUB_REPOSITORY##*/}.tar.gz
+          asset_path: ${{ steps.create_release_asset.outputs.asset_name }}
+          asset_name: ${{ steps.create_release_asset.outputs.asset_name }}
           asset_content_type: application/x-tar
