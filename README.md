@@ -10,12 +10,11 @@ This project is forked from https://github.com/calebdoxsey/kubernetes-cloudflare
 
 # Install
 ## Configure DNS settings to sync
-Fetch the configuration templates in this repository.
-We recommend just cloning this repository.
+Download the configuration templates in your work directory.
 
 ```shell
-git clone https://github.com/jlandowner/kubernetes-route53-sync.git
-cd kubernetes-route53-sync
+curl -LO https://github.com/jlandowner/kubernetes-route53-sync/releases/download/v1.2.0/kubernetes-route53-sync.tar.gz
+tar -zxvf kubernetes-route53-sync.tar.gz 
 ```
 
 Then update DNS name to sync and the other settings in `kubernetes/common/deployment.yaml`
