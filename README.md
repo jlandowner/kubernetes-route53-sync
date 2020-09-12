@@ -26,7 +26,7 @@ Then update DNS name to sync and the other settings in `kubernetes/common/deploy
             value: "example.com"
 ```
 
-For the options details, See the following `Available variable environments`.
+For the options details, See the following [Available variable environments](https://github.com/jlandowner/kubernetes-route53-sync#available-variable-environments).
 
 ## Create AWS IAM Policy
 
@@ -55,7 +55,7 @@ aws iam attach-user-policy --user-name kubernetes-route53-sync --policy-arn arn:
 aws iam create-access-key --user-name kubernetes-route53-sync
 ```
 
-Then replace <YOUR_AWS_ACCESS_KEY_ID> and <YOUR_AWS_SECRET_ACCESS_KEY> in `kubernetes/accesskey/kustomization.yaml` to the above output
+Then replace <YOUR_AWS_ACCESS_KEY_ID> and <YOUR_AWS_SECRET_ACCESS_KEY> in `kubernetes/accesskey/kustomization.yaml`
 
 2. Deploy
 
