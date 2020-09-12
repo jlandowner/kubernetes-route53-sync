@@ -34,7 +34,7 @@ jobs:
 
       - name: create release asset
         run: |
-          make release
+          make release-asset
 
       - name: create release
         id: create_release
