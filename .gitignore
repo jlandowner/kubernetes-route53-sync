@@ -17,3 +17,4 @@
 bin/
 test/
 *.bk
+*.tar.gz
