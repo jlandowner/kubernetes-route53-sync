@@ -1,6 +1,7 @@
 # kubernetes-route53-sync
 
 ![GoReportCard](https://goreportcard.com/badge/github.com/jlandowner/kubernetes-route53-sync)
+[![GoReportCard](https://goreportcard.com/badge/github.com/jlandowner/kubernetes-route53-sync)](https://goreportcard.com/report/github.com/jlandowner/kubernetes-route53-sync)
 ![DockerPulls](https://img.shields.io/docker/pulls/jlandowner/kubernetes-route53-sync)
 ![GithubActionsStatus](https://github.com/jlandowner/kubernetes-route53-sync/workflows/release/badge.svg)
 
