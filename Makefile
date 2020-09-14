@@ -9,3 +9,11 @@ release-asset:
 update-version:
 	sed -i.bk "s/`grep 'image:' kubernetes/common/deployment.yaml | awk '{print substr($$2, index($$2, "release-v")+8)}'`/$(VERSION)/" README.md
 	sed -i.bk "s/`grep 'image:' kubernetes/common/deployment.yaml | awk '{print substr($$2, index($$2, "release-v")+8)}'`/$(VERSION)/" kubernetes/common/deployment.yaml
+
+create-remote-tag:
+	git tag $(VERSION)
+	git push origin $(VERSION)
+
+delete-remote-tag:
+	git push --delete origin $(VERSION)
+	git tag -d $(VERSION)
