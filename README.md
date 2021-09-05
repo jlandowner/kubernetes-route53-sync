@@ -1,10 +1,9 @@
 # kubernetes-route53-sync
 
 [![GoReportCard](https://goreportcard.com/badge/github.com/jlandowner/kubernetes-route53-sync)](https://goreportcard.com/report/github.com/jlandowner/kubernetes-route53-sync)
-![DockerPulls](https://img.shields.io/docker/pulls/jlandowner/kubernetes-route53-sync)
+[![DockerPulls](https://img.shields.io/docker/pulls/jlandowner/kubernetes-route53-sync)](https://hub.docker.com/r/jlandowner/kubernetes-route53-sync)
+[![GHCRPulls](https://img.shields.io/badge/current_registry-github_packages-brightgreen)](https://github.com/jlandowner/kubernetes-route53-sync/pkgs/container/kubernetes-route53-sync)
 ![GithubActionsStatus](https://github.com/jlandowner/kubernetes-route53-sync/workflows/release/badge.svg)
-
-[![dockeri.co](https://dockeri.co/image/jlandowner/kubernetes-route53-sync)](https://hub.docker.com/r/jlandowner/kubernetes-route53-sync)
 
 Kubernetes controller to synchronize node IPs with Route53 DNS records
 
