@@ -86,6 +86,7 @@ eksctl utils associate-iam-oidc-provider --cluster YOUR_EKS_CLUSTER_NAME --appro
 ```shell
 eksctl create iamserviceaccount \
     --name kubernetes-route53-sync \
+    --role-name kubernetes-route53-sync \
     --namespace kube-system \
     --cluster YOUR_EKS_CLUSTER_NAME \
     --attach-policy-arn arn:aws:iam::YOUR_ACCOUNT_ID:policy/kubernetes-route53-sync \
